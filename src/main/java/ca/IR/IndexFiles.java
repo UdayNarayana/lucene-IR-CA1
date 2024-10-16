@@ -29,6 +29,7 @@ public class IndexFiles {
 
         File docsDir = new File(docsPath);
         for (File file : docsDir.listFiles()) {
+            System.out.println("Indexing file: " + file.getName());
             indexDoc(writer, file);
         }
         writer.close();
@@ -51,4 +52,3 @@ public class IndexFiles {
         }
     }
 }
-
