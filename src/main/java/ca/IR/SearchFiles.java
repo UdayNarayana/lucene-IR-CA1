@@ -80,7 +80,7 @@ public class SearchFiles {
                     for (ScoreDoc hit : hits) {
                         Document doc = searcher.doc(hit.doc);
                         // Write results to the output file in the correct format
-                        writer.println(queryNumber + " 0 " + doc.get("filename") + " " + rank + " " + hit.score + " Any");
+                        writer.println(queryNumber + " 0 " +rank+ " " + hit.score + " Any");
                         rank++; // Increment rank
                     }
                     queryNumber++; // Increment query number after processing each query
