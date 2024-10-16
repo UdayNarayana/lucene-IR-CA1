@@ -74,10 +74,12 @@ public class SearchFiles {
                     System.out.println("Searching for: " + queryString);
                     ScoreDoc[] hits = searcher.search(query, 10).scoreDocs;
 
+                    int rank = 1; // Initialize rank
                     for (ScoreDoc hit : hits) {
                         Document doc = searcher.doc(hit.doc);
-                        // Write results to the output file
-                        writer.println(queryString + " " + doc.get("filename") + " " + hit.score);
+                        // Write results to the output file in the correct format
+                        writer.println(queryString + " Q0 " + doc.get("filename") + " " + rank + " " + hit.score + " STANDARD");
+                        rank++; // Increment rank
                     }
                 } catch (ParseException e) {
                     System.out.println("Failed to parse query: " + queryString);
