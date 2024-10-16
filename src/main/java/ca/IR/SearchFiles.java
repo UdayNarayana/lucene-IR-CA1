@@ -7,64 +7,64 @@ import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.similarities.ClassicSimilarity;
-import org.apache.lucene.search.similarities.BM25Similarity;
+import org.apache.lucene.search.similarities.*;
 import org.apache.lucene.store.FSDirectory;
 
 import java.io.File;
-import java.io.FileWriter;
-import java.io.PrintWriter;
 import java.nio.file.Paths;
 import java.util.Scanner;
 
 public class SearchFiles {
 
     public static void main(String[] args) throws Exception {
-        String indexPath = args[0];   // Path to the index
-        String queriesPath = args[1];  // Path to the queries
-        String outputPath = args[2];   // Path for output.txt
-        int scoreType = Integer.parseInt(args[3]);  // Score type (0 for Classic, 1 for BM25)
+        String indexPath = args[0];
+        String queriesPath = args[1];
+        int scoreType = Integer.parseInt(args[2]);  // Score type parameter
+        String outputPath = args[3];
 
         DirectoryReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexPath)));
         IndexSearcher searcher = new IndexSearcher(reader);
 
-        // Set similarity based on the score type
-        if (scoreType == 0) {
-            searcher.setSimilarity(new ClassicSimilarity());
-        } else if (scoreType == 1) {
-            searcher.setSimilarity(new BM25Similarity());
+        // Set similarity based on scoreType
+        switch (scoreType) {
+            case 0:
+                searcher.setSimilarity(new ClassicSimilarity());  // Vector Space Model
+                break;
+            case 1:
+                searcher.setSimilarity(new BM25Similarity());  // BM25
+                break;
+            case 2:
+                searcher.setSimilarity(new BooleanSimilarity());  // Boolean Similarity
+                break;
+            case 3:
+                searcher.setSimilarity(new LMDirichletSimilarity());  // LMDirichlet
+                break;
+            case 4:
+                searcher.setSimilarity(new LMJelinekMercerSimilarity(0.7f));  // LMJelinekMercer
+                break;
+            default:
+                System.out.println("Invalid score type. Please provide a value between 0 and 4.");
+                return;
         }
 
         StandardAnalyzer analyzer = new StandardAnalyzer();
         QueryParser parser = new QueryParser("contents", analyzer);
 
-        // Open output file for writing search results
-        PrintWriter writer = new PrintWriter(new FileWriter(outputPath));
-
-        // Reading the query file and executing the search
-        try (Scanner scanner = new Scanner(new File(queriesPath))) {
-            int queryID = 1; // Assuming queries are sequentially numbered
-
+        File queryFile = new File(queriesPath);
+        try (Scanner scanner = new Scanner(queryFile)) {
             while (scanner.hasNextLine()) {
                 String queryString = scanner.nextLine();
                 Query query = parser.parse(queryString);
                 System.out.println("Searching for: " + queryString);
                 ScoreDoc[] hits = searcher.search(query, 10).scoreDocs;
 
-                for (int rank = 0; rank < hits.length; rank++) {
-                    Document doc = searcher.doc(hits[rank].doc);
-                    String docID = doc.get("filename"); // Assuming document ID is stored in the filename field
-                    float score = hits[rank].score;
-
-                    // Write output in TREC format: queryID Q0 docID rank score STANDARD
-                    writer.println(queryID + " Q0 " + docID + " " + (rank + 1) + " " + score + " STANDARD");
+                for (ScoreDoc hit : hits) {
+                    Document doc = searcher.doc(hit.doc);
+                    System.out.println("Found in file: " + doc.get("filename") + " with score: " + hit.score);
                 }
-
-                queryID++;
             }
         }
 
-        writer.close();
         reader.close();
     }
 }
