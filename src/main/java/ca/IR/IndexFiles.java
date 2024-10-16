@@ -21,21 +21,26 @@ public class IndexFiles {
         String indexPath = args[0];  // Path to save index
         String docsPath = args[1];   // Path to Cranfield dataset
 
-        // Open directory where index will be stored
+        System.out.println("Indexing to directory: " + indexPath);
         Directory dir = FSDirectory.open(Paths.get(indexPath));
         StandardAnalyzer analyzer = new StandardAnalyzer();
         IndexWriterConfig config = new IndexWriterConfig(analyzer);
         IndexWriter writer = new IndexWriter(dir, config);
 
         File docsDir = new File(docsPath);
+        if (!docsDir.exists()) {
+            System.out.println("Document directory does not exist: " + docsPath);
+            return;
+        }
+
         for (File file : docsDir.listFiles()) {
             System.out.println("Indexing file: " + file.getName());
             indexDoc(writer, file);
         }
         writer.close();
+        System.out.println("Indexing completed.");
     }
 
-    // Indexing each document
     static void indexDoc(IndexWriter writer, File file) throws IOException {
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
             StringBuilder content = new StringBuilder();
@@ -44,11 +49,14 @@ public class IndexFiles {
                 content.append(line).append("\n");
             }
 
-            // Create a new document for each file
             Document doc = new Document();
             doc.add(new TextField("contents", content.toString(), Field.Store.YES));
             doc.add(new TextField("filename", file.getName(), Field.Store.YES));
             writer.addDocument(doc);
+        }
+        catch (IOException e) {
+            System.out.println("Error indexing document: " + file.getName());
+            e.printStackTrace();
         }
     }
 }
