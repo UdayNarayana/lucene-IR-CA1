@@ -79,8 +79,9 @@ public class SearchFiles {
                     int rank = 1; // Initialize rank
                     for (ScoreDoc hit : hits) {
                         Document doc = searcher.doc(hit.doc);
-                        // Write results to the output file in the correct format
-                        writer.println(queryNumber + " 0 " +rank+ " " + hit.score + " Any");
+                        // Ensure "documentID" is stored correctly in your index
+                        String docID = doc.get("documentID"); // assuming you store the document ID as "documentID"
+                        writer.println(queryNumber + " Q0 " + docID + " " + rank + " " + hit.score + " STANDARD");
                         rank++; // Increment rank
                     }
                     queryNumber++; // Increment query number after processing each query
