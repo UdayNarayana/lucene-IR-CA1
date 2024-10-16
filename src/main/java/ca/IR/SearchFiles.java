@@ -9,26 +9,62 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.similarities.BM25Similarity;
+import org.apache.lucene.search.similarities.ClassicSimilarity;
+import org.apache.lucene.search.similarities.BooleanSimilarity;
+import org.apache.lucene.search.similarities.LMDirichletSimilarity;
+import org.apache.lucene.search.similarities.LMJelinekMercerSimilarity;
 import org.apache.lucene.store.FSDirectory;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 import java.nio.file.Paths;
 import java.util.Scanner;
 
 public class SearchFiles {
     public static void main(String[] args) throws Exception {
-        String indexPath = args[0];
-        String queriesPath = args[1];
+        // Check for proper number of arguments
+        if (args.length < 4) {
+            System.out.println("Usage: SearchFiles <indexDir> <queriesFile> <scoreType> <outputFile>");
+            return;
+        }
+
+        String indexPath = args[0];  // Path to the index
+        String queriesPath = args[1]; // Path to the queries
+        int scoreType = Integer.parseInt(args[2]); // Score type parameter
+        String outputPath = args[3]; // Output file path
 
         DirectoryReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexPath)));
         IndexSearcher searcher = new IndexSearcher(reader);
-        searcher.setSimilarity(new BM25Similarity());
+
+        // Set similarity based on scoreType
+        switch (scoreType) {
+            case 0:
+                searcher.setSimilarity(new ClassicSimilarity()); // Vector Space Model
+                break;
+            case 1:
+                searcher.setSimilarity(new BM25Similarity()); // BM25
+                break;
+            case 2:
+                searcher.setSimilarity(new BooleanSimilarity()); // Boolean Similarity
+                break;
+            case 3:
+                searcher.setSimilarity(new LMDirichletSimilarity()); // LMDirichlet
+                break;
+            case 4:
+                searcher.setSimilarity(new LMJelinekMercerSimilarity(0.7f)); // LMJelinekMercer
+                break;
+            default:
+                System.out.println("Invalid score type. Please provide a value between 0 and 4.");
+                return;
+        }
 
         StandardAnalyzer analyzer = new StandardAnalyzer();
         QueryParser parser = new QueryParser("contents", analyzer);
 
         File queryFile = new File(queriesPath);
-        try (Scanner scanner = new Scanner(queryFile)) {
+        try (Scanner scanner = new Scanner(queryFile);
+             PrintWriter writer = new PrintWriter(new FileWriter(outputPath))) { // Open output file
             while (scanner.hasNextLine()) {
                 String queryString = scanner.nextLine().trim(); // Trim whitespace
                 System.out.println("Query String: " + queryString); // Log the query
@@ -40,7 +76,8 @@ public class SearchFiles {
 
                     for (ScoreDoc hit : hits) {
                         Document doc = searcher.doc(hit.doc);
-                        System.out.println("Found in file: " + doc.get("filename") + " with score: " + hit.score);
+                        // Write results to the output file
+                        writer.println(queryString + " " + doc.get("filename") + " " + hit.score);
                     }
                 } catch (ParseException e) {
                     System.out.println("Failed to parse query: " + queryString);
