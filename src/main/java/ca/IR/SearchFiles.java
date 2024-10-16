@@ -65,6 +65,8 @@ public class SearchFiles {
         File queryFile = new File(queriesPath);
         try (Scanner scanner = new Scanner(queryFile);
              PrintWriter writer = new PrintWriter(new FileWriter(outputPath))) { // Open output file
+
+            int queryNumber = 1; // Initialize query number before the loop
             while (scanner.hasNextLine()) {
                 String queryString = scanner.nextLine().trim(); // Trim whitespace
                 System.out.println("Query String: " + queryString); // Log the query
@@ -78,9 +80,10 @@ public class SearchFiles {
                     for (ScoreDoc hit : hits) {
                         Document doc = searcher.doc(hit.doc);
                         // Write results to the output file in the correct format
-                        writer.println(queryString + " Q0 " + doc.get("filename") + " " + rank + " " + hit.score + " STANDARD");
+                        writer.println(queryNumber + " 0 " + doc.get("filename") + " " + rank + " " + hit.score + " Any");
                         rank++; // Increment rank
                     }
+                    queryNumber++; // Increment query number after processing each query
                 } catch (ParseException e) {
                     System.out.println("Failed to parse query: " + queryString);
                     e.printStackTrace(); // Print the error stack trace
