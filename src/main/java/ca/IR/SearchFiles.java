@@ -60,45 +60,32 @@ public class SearchFiles {
 
         File queryFile = new File(queriesPath);
         try (Scanner scanner = new Scanner(queryFile);
-             PrintWriter writer = new PrintWriter(new FileWriter(outputPath))) { // Writing output file
+             PrintWriter writer = new PrintWriter(new FileWriter(outputPath))) {
 
-            int queryNumber = 1; // Initialize query number
+            int queryNumber = 1;
             while (scanner.hasNextLine()) {
-                String queryString = scanner.nextLine().trim(); // Get query string
-                if (queryString.isEmpty()) continue; // Skip empty lines
-
-                // Pre-process the query string to handle malformed cases
-                queryString = cleanQueryString(queryString);
+                String queryString = scanner.nextLine().trim();
+                if (queryString.isEmpty()) continue;
 
                 try {
                     Query query = parser.parse(queryString);
                     ScoreDoc[] hits = searcher.search(query, 50).scoreDocs; // Get top 50 results
 
-                    // Iterate through the hits
-                    int rank = 1; // Initialize rank
+                    int rank = 1;
                     for (ScoreDoc hit : hits) {
                         Document doc = searcher.doc(hit.doc);
-                        String docID = doc.get("id"); // Get the document ID from the indexed document
+                        String docID = doc.get("documentID");
 
-                        // Format: <queryID> Q0 <documentID> <rank> <score> STANDARD
+                        // Output format for TREC_eval
                         writer.println(queryNumber + " Q0 " + docID + " " + rank + " " + hit.score + " STANDARD");
                         rank++;
                     }
-
-                    queryNumber++; // Increment query number after processing each query
+                    queryNumber++;
                 } catch (ParseException e) {
                     System.out.println("Error parsing query: " + queryString);
                 }
             }
         }
         reader.close();
-    }
-
-    // Method to clean up query strings before parsing
-    private static String cleanQueryString(String queryString) {
-        // Remove problematic characters or patterns, e.g., unmatched parentheses
-        // You can expand this function to include other specific cleaning rules as needed.
-        queryString = queryString.replaceAll("[?]", ""); // Example: remove question marks
-        return queryString.trim(); // Trim whitespace
     }
 }
