@@ -3,9 +3,10 @@ package ca.IR;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.queryparser.classic.ParseException;
-import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.search.*;
+import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.similarities.*;
 import org.apache.lucene.store.FSDirectory;
 
@@ -13,22 +14,22 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 
 public class SearchFiles {
     public static void main(String[] args) throws Exception {
-        // Ensure correct number of arguments
         if (args.length < 4) {
             System.out.println("Usage: SearchFiles <indexDir> <queriesFile> <scoreType> <outputFile>");
             return;
         }
 
-        String indexPath = args[0];  // Path to the index
-        String queriesPath = args[1]; // Path to the queries file
-        int scoreType = Integer.parseInt(args[2]); // Scoring method
-        String outputPath = args[3]; // Path for output
+        String indexPath = args[0];
+        String queriesPath = args[1];
+        int scoreType = Integer.parseInt(args[2]);
+        String outputPath = args[3];
 
-        // Open the index reader
         try (DirectoryReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexPath)));
              PrintWriter writer = new PrintWriter(new FileWriter(outputPath))) {
 
@@ -36,8 +37,13 @@ public class SearchFiles {
             setSimilarity(searcher, scoreType);
 
             StandardAnalyzer analyzer = new StandardAnalyzer();
-            QueryParser parser = new QueryParser("contents", analyzer); // Primary search on the content field
+            String[] fields = {"title", "author", "contents"};
+            Map<String, Float> boosts = new HashMap<>();
+            boosts.put("title", 2.0f);     // Boost title field
+            boosts.put("author", 1.5f);    // Boost author field
+            boosts.put("contents", 1.0f);  // Standard weight for contents
 
+            MultiFieldQueryParser parser = new MultiFieldQueryParser(fields, analyzer, boosts);
             File queryFile = new File(queriesPath);
             try (Scanner scanner = new Scanner(queryFile)) {
                 int queryNumber = 1;
@@ -47,38 +53,20 @@ public class SearchFiles {
                     if (queryString.isEmpty()) continue;
 
                     try {
-                        // Use a multi-field query parser if you want to search multiple fields
-                        Query titleQuery = new QueryParser("title", analyzer).parse(queryString);
-                        Query contentQuery = new QueryParser("contents", analyzer).parse(queryString);
+                        // Parse the query with boosts applied
+                        Query query = parser.parse(queryString);
 
-                        // You can combine these queries or choose one based on user needs
-                        BooleanQuery combinedQuery = new BooleanQuery.Builder()
-                                .add(titleQuery, BooleanClause.Occur.SHOULD)
-                                .add(contentQuery, BooleanClause.Occur.SHOULD)
-                                .build();
-
-                        ScoreDoc[] hits = searcher.search(combinedQuery, 50).scoreDocs;
-
-                        if (hits.length == 0) {
-                            System.out.println("No results found for query: " + queryString);
-                            continue; // Skip to the next query
-                        }
+                        ScoreDoc[] hits = searcher.search(query, 50).scoreDocs; // Get top 50 results
 
                         int rank = 1;
                         for (ScoreDoc hit : hits) {
                             Document doc = searcher.doc(hit.doc);
                             String docID = doc.get("documentID");
-                            String title = doc.get("title");
-                            String author = doc.get("author");
-
-                            // Output format for TREC_eval
                             writer.println(queryNumber + " 0 " + docID + " " + rank + " " + hit.score + " STANDARD");
-                            // You can log the document title and author for debugging purposes
-                            System.out.println("Found Document: ID=" + docID + ", Title=" + title + ", Author=" + author);
                             rank++;
                         }
                         queryNumber++;
-                    } catch (ParseException e) {
+                    } catch (Exception e) {
                         System.out.println("Error parsing query: " + queryString);
                     }
                 }
@@ -92,7 +80,7 @@ public class SearchFiles {
                 searcher.setSimilarity(new ClassicSimilarity());
                 break;
             case 1:
-                searcher.setSimilarity(new BM25Similarity());
+                searcher.setSimilarity(new BM25Similarity(1.2f, 0.75f)); // BM25 with tuned parameters
                 break;
             case 2:
                 searcher.setSimilarity(new BooleanSimilarity());
