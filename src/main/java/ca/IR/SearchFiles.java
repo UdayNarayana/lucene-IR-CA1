@@ -74,7 +74,7 @@ public class SearchFiles {
                     int rank = 1; // Initialize rank
                     for (ScoreDoc hit : hits) {
                         Document doc = searcher.doc(hit.doc);
-                        String docID = doc.get("documentID"); // Ensure you index the document IDs
+                        String docID = doc.get("id"); // Use the same field name for document ID
 
                         // Format: <queryID> Q0 <documentID> <rank> <score> STANDARD
                         writer.println(queryNumber + " Q0 " + docID + " " + rank + " " + hit.score + " STANDARD");

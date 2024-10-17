@@ -1,8 +1,10 @@
 package ca.IR;
 
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -59,14 +61,17 @@ public class IndexFiles {
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
             StringBuilder content = new StringBuilder();
             String line;
+            String docID = file.getName(); // Get the document ID from the filename
+
             while ((line = br.readLine()) != null) {
                 content.append(line).append("\n");
             }
 
             Document doc = new Document();
             doc.add(new TextField("contents", content.toString(), Field.Store.YES));
-            doc.add(new TextField("filename", file.getName(), Field.Store.YES));
+            doc.add(new StringField("id", docID, Field.Store.YES)); // Store the document ID
             writer.addDocument(doc);
+            System.out.println("Indexed document ID: " + docID); // Show the indexed document ID
         }
     }
 }
