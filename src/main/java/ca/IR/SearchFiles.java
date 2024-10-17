@@ -71,13 +71,14 @@ public class SearchFiles {
                     Query query = parser.parse(queryString);
                     ScoreDoc[] hits = searcher.search(query, 50).scoreDocs; // Get top 50 results
 
+                    // Iterate through the hits
                     int rank = 1; // Initialize rank
                     for (ScoreDoc hit : hits) {
                         Document doc = searcher.doc(hit.doc);
-                        String docID = doc.get("id"); // Use the same field name for document ID
+                        String docID = doc.get("id"); // Get the document ID from the indexed document
 
                         // Format: <queryID> Q0 <documentID> <rank> <score> STANDARD
-                        writer.println(queryNumber + " Q0 " + docID + " " + rank + " " + hit.score + " STANDARD");
+                        writer.println(queryNumber + " 0 " + docID + " " + rank + " " + hit.score + " STANDARD");
                         rank++;
                     }
 

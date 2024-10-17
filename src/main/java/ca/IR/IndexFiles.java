@@ -15,6 +15,11 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class IndexFiles {
@@ -36,7 +41,7 @@ public class IndexFiles {
 
         // Opening the directory for index storage
         Directory dir = FSDirectory.open(Paths.get(indexPath));
-        StandardAnalyzer analyzer = new StandardAnalyzer();
+        Analyzer analyzer = new StandardAnalyzer();
         IndexWriterConfig config = new IndexWriterConfig(analyzer);
         IndexWriter writer = new IndexWriter(dir, config);
 
@@ -58,20 +63,45 @@ public class IndexFiles {
     }
 
     static void indexDoc(IndexWriter writer, File file) throws IOException {
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            StringBuilder content = new StringBuilder();
-            String line;
-            String docID = file.getName(); // Get the document ID from the filename
+        try (InputStream stream = Files.newInputStream(file.toPath())) {
+            BufferedReader inputReader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));
+            String currentLine;
+            Document document = new Document();
+            String docType = "";
+            String docID = ""; // Initialize docID
 
-            while ((line = br.readLine()) != null) {
-                content.append(line).append("\n");
+            while ((currentLine = inputReader.readLine()) != null) {
+                // Output the line being processed (for verbosity)
+                System.out.println("Processing: " + currentLine);
+
+                if (currentLine.contains(".I")) {
+                    // Start of a new document
+                    docID = currentLine.split(" ")[1]; // Extract the document ID from the line
+                    Field idField = new StringField("id", docID, Field.Store.YES); // Add the document ID to the document
+                    document.add(idField);
+                    currentLine = inputReader.readLine();
+
+                    while (currentLine != null && !currentLine.startsWith(".I")) {
+                        if (currentLine.startsWith(".T")) {
+                            docType = "Title";
+                        } else if (currentLine.startsWith(".A")) {
+                            docType = "Author";
+                        } else if (currentLine.startsWith(".W")) {
+                            docType = "Words";
+                        } else if (currentLine.startsWith(".B")) {
+                            docType = "Bibliography";
+                        } else {
+                            // Add the content of the section to the document
+                            document.add(new TextField(docType, currentLine, Field.Store.YES));
+                        }
+                        currentLine = inputReader.readLine();
+                    }
+
+                    // Add the document to the index
+                    System.out.println("Adding document ID: " + docID);
+                    writer.addDocument(document);
+                }
             }
-
-            Document doc = new Document();
-            doc.add(new TextField("contents", content.toString(), Field.Store.YES));
-            doc.add(new StringField("id", docID, Field.Store.YES)); // Store the document ID
-            writer.addDocument(doc);
-            System.out.println("Indexed document ID: " + docID); // Show the indexed document ID
         }
     }
 }
