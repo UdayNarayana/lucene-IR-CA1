@@ -62,7 +62,7 @@ public class SearchFiles {
                         for (ScoreDoc hit : hits) {
                             Document doc = searcher.doc(hit.doc);
                             String docID = doc.get("documentID");
-                            writer.println(queryNumber + " 0 " + docID + " " + rank + " " + hit.score + " STANDARD");
+                            writer.println(queryNumber + " 0 " + docID + " " + hit.score + " STANDARD");
                             rank++;
                         }
                         queryNumber++;
