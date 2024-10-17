@@ -73,36 +73,31 @@ public class IndexFiles {
                         title.setLength(0); // Clear title for new document
                         author.setLength(0); // Clear author for new document
                     }
-                    // Extract document ID (number after .I)
                     docID = line.substring(3).trim(); // Capture the number after .I
                 } else if (line.startsWith(".T")) {
-                    // Read title lines
                     line = br.readLine(); // Read the next line for title content
                     while (line != null && !line.startsWith(".")) {
                         title.append(line).append(" ");
                         line = br.readLine();
                     }
                 } else if (line.startsWith(".A")) {
-                    // Read author lines
                     line = br.readLine(); // Read the next line for author content
                     while (line != null && !line.startsWith(".")) {
                         author.append(line).append(" ");
                         line = br.readLine();
                     }
                 } else if (line.startsWith(".W")) {
-                    // Content starts after .W
                     isContent = true;
                     continue; // Skip this line
                 }
 
-                // Append content lines if we are in the content section
+                // Append lines to content if we are in the content section
                 if (isContent) {
                     content.append(line).append(" "); // Append line to content
                 }
             }
 
             if (docID != null) {
-                // Add the last document after exiting the loop
                 addDocument(writer, docID, title.toString(), author.toString(), content.toString());
             }
         }
@@ -110,10 +105,10 @@ public class IndexFiles {
 
     private static void addDocument(IndexWriter writer, String docID, String title, String author, String textContent) throws IOException {
         Document doc = new Document();
-        doc.add(new TextField("title", title, Field.Store.YES)); // Store title
-        doc.add(new TextField("author", author, Field.Store.YES)); // Store author
-        doc.add(new TextField("contents", textContent, Field.Store.YES)); // Store main content
-        doc.add(new TextField("documentID", docID, Field.Store.YES)); // Use the extracted docID
+        doc.add(new TextField("title", title, Field.Store.YES));
+        doc.add(new TextField("author", author, Field.Store.YES));
+        doc.add(new TextField("contents", textContent, Field.Store.YES));
+        doc.add(new TextField("documentID", docID, Field.Store.YES));
         writer.addDocument(doc);
     }
 }

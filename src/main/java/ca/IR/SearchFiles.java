@@ -5,9 +5,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.*;
 import org.apache.lucene.search.similarities.*;
 import org.apache.lucene.store.FSDirectory;
 
@@ -49,8 +47,17 @@ public class SearchFiles {
                     if (queryString.isEmpty()) continue;
 
                     try {
-                        Query query = parser.parse(queryString);
-                        ScoreDoc[] hits = searcher.search(query, 50).scoreDocs; // Get top 50 results
+                        // Use a multi-field query parser if you want to search multiple fields
+                        Query titleQuery = new QueryParser("title", analyzer).parse(queryString);
+                        Query contentQuery = new QueryParser("contents", analyzer).parse(queryString);
+
+                        // You can combine these queries or choose one based on user needs
+                        BooleanQuery combinedQuery = new BooleanQuery.Builder()
+                                .add(titleQuery, BooleanClause.Occur.SHOULD)
+                                .add(contentQuery, BooleanClause.Occur.SHOULD)
+                                .build();
+
+                        ScoreDoc[] hits = searcher.search(combinedQuery, 50).scoreDocs;
 
                         if (hits.length == 0) {
                             System.out.println("No results found for query: " + queryString);
