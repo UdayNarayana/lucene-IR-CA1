@@ -30,62 +30,75 @@ public class SearchFiles {
         int scoreType = Integer.parseInt(args[2]); // Scoring method
         String outputPath = args[3]; // Path for output
 
-        DirectoryReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexPath)));
-        IndexSearcher searcher = new IndexSearcher(reader);
-
-        // Set the similarity based on score type
-        switch (scoreType) {
-            case 0:
-                searcher.setSimilarity(new ClassicSimilarity()); // Vector Space Model
-                break;
-            case 1:
-                searcher.setSimilarity(new BM25Similarity()); // BM25
-                break;
-            case 2:
-                searcher.setSimilarity(new BooleanSimilarity()); // Boolean
-                break;
-            case 3:
-                searcher.setSimilarity(new LMDirichletSimilarity()); // LMDirichlet
-                break;
-            case 4:
-                searcher.setSimilarity(new LMJelinekMercerSimilarity(0.7f)); // LMJelinekMercer
-                break;
-            default:
-                System.out.println("Invalid score type");
-                return;
-        }
-
-        StandardAnalyzer analyzer = new StandardAnalyzer();
-        QueryParser parser = new QueryParser("contents", analyzer);
-
-        File queryFile = new File(queriesPath);
-        try (Scanner scanner = new Scanner(queryFile);
+        // Open the index reader
+        try (DirectoryReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexPath)));
              PrintWriter writer = new PrintWriter(new FileWriter(outputPath))) {
 
-            int queryNumber = 1;
-            while (scanner.hasNextLine()) {
-                String queryString = scanner.nextLine().trim();
-                if (queryString.isEmpty()) continue;
+            IndexSearcher searcher = new IndexSearcher(reader);
+            setSimilarity(searcher, scoreType);
 
-                try {
-                    Query query = parser.parse(queryString);
-                    ScoreDoc[] hits = searcher.search(query, 50).scoreDocs; // Get top 50 results
+            StandardAnalyzer analyzer = new StandardAnalyzer();
+            QueryParser parser = new QueryParser("contents", analyzer); // Primary search on the content field
 
-                    int rank = 1;
-                    for (ScoreDoc hit : hits) {
-                        Document doc = searcher.doc(hit.doc);
-                        String docID = doc.get("documentID");
+            File queryFile = new File(queriesPath);
+            try (Scanner scanner = new Scanner(queryFile)) {
+                int queryNumber = 1;
 
-                        // Output format for TREC_eval
-                        writer.println(queryNumber + " 0 " + docID + " " + rank + " " + hit.score + " STANDARD");
-                        rank++;
+                while (scanner.hasNextLine()) {
+                    String queryString = scanner.nextLine().trim();
+                    if (queryString.isEmpty()) continue;
+
+                    try {
+                        Query query = parser.parse(queryString);
+                        ScoreDoc[] hits = searcher.search(query, 50).scoreDocs; // Get top 50 results
+
+                        if (hits.length == 0) {
+                            System.out.println("No results found for query: " + queryString);
+                            continue; // Skip to the next query
+                        }
+
+                        int rank = 1;
+                        for (ScoreDoc hit : hits) {
+                            Document doc = searcher.doc(hit.doc);
+                            String docID = doc.get("documentID");
+                            String title = doc.get("title");
+                            String author = doc.get("author");
+
+                            // Output format for TREC_eval
+                            writer.println(queryNumber + " 0 " + docID + " " + rank + " " + hit.score + " STANDARD");
+                            // You can log the document title and author for debugging purposes
+                            System.out.println("Found Document: ID=" + docID + ", Title=" + title + ", Author=" + author);
+                            rank++;
+                        }
+                        queryNumber++;
+                    } catch (ParseException e) {
+                        System.out.println("Error parsing query: " + queryString);
                     }
-                    queryNumber++;
-                } catch (ParseException e) {
-                    System.out.println("Error parsing query: " + queryString);
                 }
             }
         }
-        reader.close();
+    }
+
+    private static void setSimilarity(IndexSearcher searcher, int scoreType) {
+        switch (scoreType) {
+            case 0:
+                searcher.setSimilarity(new ClassicSimilarity());
+                break;
+            case 1:
+                searcher.setSimilarity(new BM25Similarity());
+                break;
+            case 2:
+                searcher.setSimilarity(new BooleanSimilarity());
+                break;
+            case 3:
+                searcher.setSimilarity(new LMDirichletSimilarity());
+                break;
+            case 4:
+                searcher.setSimilarity(new LMJelinekMercerSimilarity(0.7f));
+                break;
+            default:
+                System.out.println("Invalid score type");
+                throw new IllegalArgumentException("Invalid score type");
+        }
     }
 }

@@ -59,6 +59,8 @@ public class IndexFiles {
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
             String line;
             String docID = null;
+            StringBuilder title = new StringBuilder();
+            StringBuilder author = new StringBuilder();
             StringBuilder content = new StringBuilder();
             boolean isContent = false;  // Flag to indicate if we're reading content
 
@@ -66,13 +68,29 @@ public class IndexFiles {
                 if (line.startsWith(".I")) {
                     if (docID != null) {
                         // Add the previous document before starting a new one
-                        addDocument(writer, docID, content.toString());
-                        content.setLength(0);
+                        addDocument(writer, docID, title.toString(), author.toString(), content.toString());
+                        content.setLength(0); // Clear content for new document
+                        title.setLength(0); // Clear title for new document
+                        author.setLength(0); // Clear author for new document
                     }
                     // Extract document ID (number after .I)
                     docID = line.substring(3).trim(); // Capture the number after .I
+                } else if (line.startsWith(".T")) {
+                    // Read title lines
+                    line = br.readLine(); // Read the next line for title content
+                    while (line != null && !line.startsWith(".")) {
+                        title.append(line).append(" ");
+                        line = br.readLine();
+                    }
+                } else if (line.startsWith(".A")) {
+                    // Read author lines
+                    line = br.readLine(); // Read the next line for author content
+                    while (line != null && !line.startsWith(".")) {
+                        author.append(line).append(" ");
+                        line = br.readLine();
+                    }
                 } else if (line.startsWith(".W")) {
-                    // Content starts after .W, set flag to true
+                    // Content starts after .W
                     isContent = true;
                     continue; // Skip this line
                 }
@@ -85,14 +103,16 @@ public class IndexFiles {
 
             if (docID != null) {
                 // Add the last document after exiting the loop
-                addDocument(writer, docID, content.toString());
+                addDocument(writer, docID, title.toString(), author.toString(), content.toString());
             }
         }
     }
 
-    private static void addDocument(IndexWriter writer, String docID, String textContent) throws IOException {
+    private static void addDocument(IndexWriter writer, String docID, String title, String author, String textContent) throws IOException {
         Document doc = new Document();
-        doc.add(new TextField("contents", textContent, Field.Store.YES));
+        doc.add(new TextField("title", title, Field.Store.YES)); // Store title
+        doc.add(new TextField("author", author, Field.Store.YES)); // Store author
+        doc.add(new TextField("contents", textContent, Field.Store.YES)); // Store main content
         doc.add(new TextField("documentID", docID, Field.Store.YES)); // Use the extracted docID
         writer.addDocument(doc);
     }
