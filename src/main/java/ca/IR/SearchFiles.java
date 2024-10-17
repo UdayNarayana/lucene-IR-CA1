@@ -3,8 +3,11 @@ package ca.IR;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.search.*;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.similarities.*;
 import org.apache.lucene.store.FSDirectory;
 
@@ -16,6 +19,7 @@ import java.util.Scanner;
 
 public class SearchFiles {
     public static void main(String[] args) throws Exception {
+        // Ensure correct number of arguments
         if (args.length < 4) {
             System.out.println("Usage: SearchFiles <indexDir> <queriesFile> <scoreType> <outputFile>");
             return;
@@ -29,7 +33,7 @@ public class SearchFiles {
         DirectoryReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexPath)));
         IndexSearcher searcher = new IndexSearcher(reader);
 
-        // Set similarity based on score type
+        // Set the similarity based on score type
         switch (scoreType) {
             case 0:
                 searcher.setSimilarity(new ClassicSimilarity()); // Vector Space Model
@@ -38,7 +42,7 @@ public class SearchFiles {
                 searcher.setSimilarity(new BM25Similarity()); // BM25
                 break;
             case 2:
-                searcher.setSimilarity(new BooleanSimilarity()); // Boolean Similarity
+                searcher.setSimilarity(new BooleanSimilarity()); // Boolean
                 break;
             case 3:
                 searcher.setSimilarity(new LMDirichletSimilarity()); // LMDirichlet
@@ -47,36 +51,38 @@ public class SearchFiles {
                 searcher.setSimilarity(new LMJelinekMercerSimilarity(0.7f)); // LMJelinekMercer
                 break;
             default:
-                System.out.println("Invalid score type.");
+                System.out.println("Invalid score type");
                 return;
         }
 
         StandardAnalyzer analyzer = new StandardAnalyzer();
-        QueryParser parser = new QueryParser("Words", analyzer);
+        QueryParser parser = new QueryParser("contents", analyzer);
 
         File queryFile = new File(queriesPath);
         try (Scanner scanner = new Scanner(queryFile);
-             PrintWriter writer = new PrintWriter(new FileWriter(outputPath))) {
+             PrintWriter writer = new PrintWriter(new FileWriter(outputPath))) { // Writing output file
 
-            int queryNumber = 1;
+            int queryNumber = 1; // Initialize query number
             while (scanner.hasNextLine()) {
-                String queryString = scanner.nextLine().trim();
-                if (queryString.isEmpty()) continue;
+                String queryString = scanner.nextLine().trim(); // Get query string
+                if (queryString.isEmpty()) continue; // Skip empty lines
 
                 try {
                     Query query = parser.parse(queryString);
                     ScoreDoc[] hits = searcher.search(query, 50).scoreDocs; // Get top 50 results
 
-                    int rank = 1;
+                    int rank = 1; // Initialize rank
                     for (ScoreDoc hit : hits) {
                         Document doc = searcher.doc(hit.doc);
-                        String docID = doc.get("documentID");
+                        String docID = doc.get("documentID"); // Ensure you index the document IDs
+
+                        // Format: <queryID> Q0 <documentID> <rank> <score> STANDARD
                         writer.println(queryNumber + " Q0 " + docID + " " + rank + " " + hit.score + " STANDARD");
                         rank++;
                     }
 
-                    queryNumber++;
-                } catch (Exception e) {
+                    queryNumber++; // Increment query number after processing each query
+                } catch (ParseException e) {
                     System.out.println("Error parsing query: " + queryString);
                 }
             }
