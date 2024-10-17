@@ -77,7 +77,7 @@ public class SearchFiles {
                         String docID = doc.get("documentID");
 
                         // Output format for TREC_eval
-                        writer.println(queryNumber + " Q0 " + docID + " " + rank + " " + hit.score + " STANDARD");
+                        writer.println(queryNumber + " 0 " + docID + " " + rank + " " + hit.score + " STANDARD");
                         rank++;
                     }
                     queryNumber++;

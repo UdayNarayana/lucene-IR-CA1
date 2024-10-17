@@ -57,16 +57,43 @@ public class IndexFiles {
 
     static void indexDoc(IndexWriter writer, File file) throws IOException {
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            StringBuilder content = new StringBuilder();
             String line;
+            String docID = null;
+            StringBuilder content = new StringBuilder();
+            boolean isContent = false;  // Flag to indicate if we're reading content
+
             while ((line = br.readLine()) != null) {
-                content.append(line).append("\n");
+                if (line.startsWith(".I")) {
+                    if (docID != null) {
+                        // Add the previous document before starting a new one
+                        addDocument(writer, docID, content.toString());
+                        content.setLength(0);
+                    }
+                    // Extract document ID (number after .I)
+                    docID = line.substring(3).trim(); // Capture the number after .I
+                } else if (line.startsWith(".W")) {
+                    // Content starts after .W, set flag to true
+                    isContent = true;
+                    continue; // Skip this line
+                }
+
+                // Append content lines if we are in the content section
+                if (isContent) {
+                    content.append(line).append(" "); // Append line to content
+                }
             }
 
-            Document doc = new Document();
-            doc.add(new TextField("contents", content.toString(), Field.Store.YES));
-            doc.add(new TextField("documentID", file.getName(), Field.Store.YES));
-            writer.addDocument(doc);
+            if (docID != null) {
+                // Add the last document after exiting the loop
+                addDocument(writer, docID, content.toString());
+            }
         }
+    }
+
+    private static void addDocument(IndexWriter writer, String docID, String textContent) throws IOException {
+        Document doc = new Document();
+        doc.add(new TextField("contents", textContent, Field.Store.YES));
+        doc.add(new TextField("documentID", docID, Field.Store.YES)); // Use the extracted docID
+        writer.addDocument(doc);
     }
 }
