@@ -67,6 +67,9 @@ public class SearchFiles {
                 String queryString = scanner.nextLine().trim(); // Get query string
                 if (queryString.isEmpty()) continue; // Skip empty lines
 
+                // Pre-process the query string to handle malformed cases
+                queryString = cleanQueryString(queryString);
+
                 try {
                     Query query = parser.parse(queryString);
                     ScoreDoc[] hits = searcher.search(query, 50).scoreDocs; // Get top 50 results
@@ -78,7 +81,7 @@ public class SearchFiles {
                         String docID = doc.get("id"); // Get the document ID from the indexed document
 
                         // Format: <queryID> Q0 <documentID> <rank> <score> STANDARD
-                        writer.println(queryNumber + " 0 " + docID + " " + rank + " " + hit.score + " STANDARD");
+                        writer.println(queryNumber + " Q0 " + docID + " " + rank + " " + hit.score + " STANDARD");
                         rank++;
                     }
 
@@ -89,5 +92,13 @@ public class SearchFiles {
             }
         }
         reader.close();
+    }
+
+    // Method to clean up query strings before parsing
+    private static String cleanQueryString(String queryString) {
+        // Remove problematic characters or patterns, e.g., unmatched parentheses
+        // You can expand this function to include other specific cleaning rules as needed.
+        queryString = queryString.replaceAll("[?]", ""); // Example: remove question marks
+        return queryString.trim(); // Trim whitespace
     }
 }
