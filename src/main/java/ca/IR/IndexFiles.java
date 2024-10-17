@@ -20,31 +20,21 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Date;
+import java.util.Scanner;
 
 public class IndexFiles {
 
-    private IndexFiles() {}
-
     public static void main(String[] args) {
-        String indexPath = "index";
-        String docsPath = null;
-        boolean create = true;
-        for (int i = 0; i < args.length; i++) {
-            if ("-index".equals(args[i])) {
-                indexPath = args[i+1];
-                i++;
-            } else if ("-docs".equals(args[i])) {
-                docsPath = args[i+1];
-                i++;
-            } else if ("-update".equals(args[i])) {
-                create = false;
-            }
-        }
+        Scanner scanner = new Scanner(System.in);
 
-        if (docsPath == null) {
-            System.err.println("Usage: java IndexFiles -index INDEX_PATH -docs DOCS_PATH [-update]");
-            System.exit(1);
-        }
+        // Prompt user for index and document paths
+        System.out.print("Enter the path to the index directory: ");
+        String indexPath = scanner.nextLine(); // Index directory path input
+
+        System.out.print("Enter the path to the documents directory: ");
+        String docsPath = scanner.nextLine(); // Documents directory path input
+
+        boolean create = true; // Always create a new index
 
         final Path docDir = Paths.get(docsPath);
         if (!Files.isReadable(docDir)) {
@@ -55,18 +45,15 @@ public class IndexFiles {
         Date start = new Date();
         try {
             System.out.println("Indexing to directory '" + indexPath + "'...");
+
             Directory dir = FSDirectory.open(Paths.get(indexPath));
             Analyzer analyzer = new StandardAnalyzer();
             IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
 
-            if (create) {
-                iwc.setOpenMode(OpenMode.CREATE);
-            } else {
-                iwc.setOpenMode(OpenMode.CREATE_OR_APPEND);
-            }
+            iwc.setOpenMode(OpenMode.CREATE); // Always create a new index
 
             IndexWriter writer = new IndexWriter(dir, iwc);
-            indexDocs(writer, docDir);
+            indexDocs(writer, docDir); // Indexing the documents
             writer.close();
 
             Date end = new Date();
@@ -84,7 +71,8 @@ public class IndexFiles {
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                     try {
                         indexDoc(writer, file, attrs.lastModifiedTime().toMillis());
-                    } catch (IOException ignore) {}
+                    } catch (IOException ignore) {
+                    }
                     return FileVisitResult.CONTINUE;
                 }
             });
@@ -102,12 +90,11 @@ public class IndexFiles {
             while (currentLine != null) {
                 if (currentLine.startsWith(".I")) {
                     if (document != null) {
-                        writer.addDocument(document);
+                        writer.addDocument(document); // Add document to index
                     }
-
                     document = new Document();
-                    String docID = currentLine.replace(".I ", "").trim();
-                    document.add(new StringField("documentID", docID, Field.Store.YES));
+                    String docID = currentLine.replace(".I ", "").trim(); // Extract document ID
+                    document.add(new StringField("documentID", docID, Field.Store.YES)); // Store document ID
                 }
 
                 if (currentLine.startsWith(".T")) {
@@ -117,7 +104,7 @@ public class IndexFiles {
                         title.append(currentLine).append(" ");
                         currentLine = inputReader.readLine();
                     }
-                    document.add(new TextField("Title", title.toString().trim(), Field.Store.YES));
+                    document.add(new TextField("Title", title.toString().trim(), Field.Store.YES)); // Store Title
                 }
 
                 if (currentLine.startsWith(".A")) {
@@ -127,7 +114,7 @@ public class IndexFiles {
                         author.append(currentLine).append(" ");
                         currentLine = inputReader.readLine();
                     }
-                    document.add(new TextField("Author", author.toString().trim(), Field.Store.YES));
+                    document.add(new TextField("Author", author.toString().trim(), Field.Store.YES)); // Store Author
                 }
 
                 if (currentLine.startsWith(".B")) {
@@ -137,7 +124,7 @@ public class IndexFiles {
                         bibliography.append(currentLine).append(" ");
                         currentLine = inputReader.readLine();
                     }
-                    document.add(new TextField("Bibliography", bibliography.toString().trim(), Field.Store.YES));
+                    document.add(new TextField("Bibliography", bibliography.toString().trim(), Field.Store.YES)); // Store Bibliography
                 }
 
                 if (currentLine.startsWith(".W")) {
@@ -147,12 +134,12 @@ public class IndexFiles {
                         words.append(currentLine).append(" ");
                         currentLine = inputReader.readLine();
                     }
-                    document.add(new TextField("Words", words.toString().trim(), Field.Store.YES));
+                    document.add(new TextField("Words", words.toString().trim(), Field.Store.YES)); // Store Words
                 }
             }
 
             if (document != null) {
-                writer.addDocument(document);
+                writer.addDocument(document); // Add the last document to the index
             }
         }
     }
