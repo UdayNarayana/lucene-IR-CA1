@@ -5,9 +5,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
 import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.*;
 import org.apache.lucene.search.similarities.*;
 import org.apache.lucene.store.FSDirectory;
 
@@ -40,11 +38,12 @@ public class SearchFiles {
             StandardAnalyzer analyzer = new StandardAnalyzer();
             String[] fields = {"title", "author", "contents"};
             Map<String, Float> boosts = new HashMap<>();
-            boosts.put("title", 2.0f);     // Boost title field
-            boosts.put("author", 1.5f);    // Boost author field
-            boosts.put("contents", 1.0f);  // Standard weight for contents
+            boosts.put("title", 2.0f);  // Boost title at query time
+            boosts.put("author", 1.5f); // Boost author at query time
+            boosts.put("contents", 1.0f);
 
             MultiFieldQueryParser parser = new MultiFieldQueryParser(fields, analyzer, boosts);
+
             File queryFile = new File(queriesPath);
             try (Scanner scanner = new Scanner(queryFile)) {
                 int queryNumber = 1;
@@ -54,13 +53,11 @@ public class SearchFiles {
                     if (queryString.isEmpty()) continue;
 
                     try {
-                        // Escape special characters in the query string
                         queryString = QueryParser.escape(queryString);
-
-                        // Parse the escaped query
                         Query query = parser.parse(queryString);
 
-                        ScoreDoc[] hits = searcher.search(query, 50).scoreDocs; // Get top 50 results
+                        // Run the search
+                        ScoreDoc[] hits = searcher.search(query, 100).scoreDocs;  // Retrieve top 100 results
 
                         int rank = 1;
                         for (ScoreDoc hit : hits) {
@@ -84,7 +81,7 @@ public class SearchFiles {
                 searcher.setSimilarity(new ClassicSimilarity());
                 break;
             case 1:
-                searcher.setSimilarity(new BM25Similarity(1.2f, 0.75f)); // BM25 with tuned parameters
+                searcher.setSimilarity(new BM25Similarity(1.5f, 0.75f)); // Tuned BM25
                 break;
             case 2:
                 searcher.setSimilarity(new BooleanSimilarity());
