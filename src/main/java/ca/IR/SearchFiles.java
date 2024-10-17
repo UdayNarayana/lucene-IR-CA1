@@ -4,6 +4,7 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
+import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
@@ -53,7 +54,10 @@ public class SearchFiles {
                     if (queryString.isEmpty()) continue;
 
                     try {
-                        // Parse the query with boosts applied
+                        // Escape special characters in the query string
+                        queryString = QueryParser.escape(queryString);
+
+                        // Parse the escaped query
                         Query query = parser.parse(queryString);
 
                         ScoreDoc[] hits = searcher.search(query, 50).scoreDocs; // Get top 50 results
