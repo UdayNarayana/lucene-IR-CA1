@@ -5,9 +5,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
 import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.*;
 import org.apache.lucene.search.similarities.*;
 import org.apache.lucene.store.FSDirectory;
 
@@ -37,17 +35,15 @@ public class SearchFiles {
             IndexSearcher searcher = new IndexSearcher(reader);
             setSimilarity(searcher, scoreType);
 
-            // Use StandardAnalyzer with default stopword removal
             StandardAnalyzer analyzer = new StandardAnalyzer();
             String[] fields = {"title", "author", "contents"};
-
-            // Adjust field boosting (title boosted even higher)
             Map<String, Float> boosts = new HashMap<>();
-            boosts.put("title", 3.0f);     // Boost title field
-            boosts.put("author", 2.5f);    // Boost author field
-            boosts.put("contents", 1.0f);  // Standard weight for contents
+            boosts.put("title", 2.0f);  // Boost title at query time
+            boosts.put("author", 1.5f); // Boost author at query time
+            boosts.put("contents", 1.0f);
 
             MultiFieldQueryParser parser = new MultiFieldQueryParser(fields, analyzer, boosts);
+
             File queryFile = new File(queriesPath);
             try (Scanner scanner = new Scanner(queryFile)) {
                 int queryNumber = 1;
@@ -57,14 +53,11 @@ public class SearchFiles {
                     if (queryString.isEmpty()) continue;
 
                     try {
-                        // Escape special characters in the query string
                         queryString = QueryParser.escape(queryString);
-
-                        // Parse the escaped query
                         Query query = parser.parse(queryString);
 
-                        // Get top 50 results
-                        ScoreDoc[] hits = searcher.search(query, 50).scoreDocs;
+                        // Run the search
+                        ScoreDoc[] hits = searcher.search(query, 100).scoreDocs;  // Retrieve top 100 results
 
                         int rank = 1;
                         for (ScoreDoc hit : hits) {
@@ -82,24 +75,22 @@ public class SearchFiles {
         }
     }
 
-    // Function to set the scoring similarity model
     private static void setSimilarity(IndexSearcher searcher, int scoreType) {
         switch (scoreType) {
             case 0:
                 searcher.setSimilarity(new ClassicSimilarity());
                 break;
             case 1:
-                // Tuned BM25 Parameters
-                searcher.setSimilarity(new BM25Similarity(1.8f, 0.65f)); // Adjusted parameters
+                searcher.setSimilarity(new BM25Similarity(1.5f, 0.75f)); // Tuned BM25
                 break;
             case 2:
                 searcher.setSimilarity(new BooleanSimilarity());
                 break;
             case 3:
-                searcher.setSimilarity(new LMDirichletSimilarity(1500));  // Tuned mu parameter
+                searcher.setSimilarity(new LMDirichletSimilarity());
                 break;
             case 4:
-                searcher.setSimilarity(new LMJelinekMercerSimilarity(0.7f));  // Tuned lambda
+                searcher.setSimilarity(new LMJelinekMercerSimilarity(0.7f));
                 break;
             default:
                 System.out.println("Invalid score type");
