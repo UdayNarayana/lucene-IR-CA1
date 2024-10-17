@@ -115,6 +115,7 @@ public class IndexFiles {
                     document = new Document();
                     String docID = currentLine.replace(".I ", "").trim(); // Extract document ID
                     document.add(new StringField("documentID", docID, Field.Store.YES)); // Store document ID
+                    System.out.println("Current document ID set: " + docID); // Show document ID when it's first set
                 }
 
                 if (currentLine.startsWith(".T")) {
