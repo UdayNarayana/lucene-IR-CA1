@@ -1,6 +1,5 @@
 package ca.IR;
 
-import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -19,7 +18,7 @@ import java.nio.file.Paths;
 
 public class IndexFiles {
 
-    private static EnglishAnalyzer analyzer = new EnglishAnalyzer();
+    private static StandardAnalyzer analyzer = new StandardAnalyzer();
 
     public static void main(String[] args) throws Exception {
         if (args.length < 2) {
