@@ -1,5 +1,12 @@
 package ca.IR;
 
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.LowerCaseFilter;
+import org.apache.lucene.analysis.StopFilter;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.en.EnglishAnalyzer;
+import org.apache.lucene.analysis.en.PorterStemFilter;
+import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -18,7 +25,7 @@ import java.nio.file.Paths;
 
 public class IndexFiles {
 
-    private static StandardAnalyzer analyzer = new StandardAnalyzer();
+    private static Analyzer analyzer = new CustomAnalyzer(); // Use custom analyzer
 
     public static void main(String[] args) throws Exception {
         if (args.length < 2) {
@@ -62,6 +69,18 @@ public class IndexFiles {
         }
 
         System.out.println("Indexing completed.");
+    }
+
+    // Custom Analyzer for better text processing
+    public static class CustomAnalyzer extends Analyzer {
+        @Override
+        protected TokenStreamComponents createComponents(String fieldName) {
+            StandardTokenizer source = new StandardTokenizer();
+            TokenStream tokenStream = new LowerCaseFilter(source);
+            tokenStream = new StopFilter(tokenStream, EnglishAnalyzer.getDefaultStopSet());
+            tokenStream = new PorterStemFilter(tokenStream); // Stemming
+            return new TokenStreamComponents(source, tokenStream);
+        }
     }
 
     // Method to index the documents

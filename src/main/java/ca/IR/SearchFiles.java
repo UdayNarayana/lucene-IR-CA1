@@ -6,7 +6,9 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.*;
-import org.apache.lucene.search.similarities.*;
+import org.apache.lucene.search.similarities.BM25Similarity;
+import org.apache.lucene.search.similarities.BooleanSimilarity;
+import org.apache.lucene.search.similarities.ClassicSimilarity;
 import org.apache.lucene.store.FSDirectory;
 
 import java.io.File;
@@ -38,7 +40,7 @@ public class SearchFiles {
             StandardAnalyzer analyzer = new StandardAnalyzer();
             String[] fields = {"title", "contents"};
             Map<String, Float> boosts = new HashMap<>();
-            boosts.put("title", 2.0f);  // Boost title at query time
+            boosts.put("title", 3.0f);  // Increase the boost for the title field
             boosts.put("contents", 1.0f);
 
             MultiFieldQueryParser parser = new MultiFieldQueryParser(fields, analyzer, boosts);
@@ -52,18 +54,18 @@ public class SearchFiles {
                     if (queryString.isEmpty()) continue;
 
                     try {
-                        String queriedString = QueryParser.escape(queryString);
-                        Query query = parser.parse(queriedString);
+                        queryString = escapeSpecialCharacters(queryString); // Escape special characters
+                        Query query = parser.parse(queryString);
 
                         // Run the search and retrieve top 100 results
-                        ScoreDoc[] hits = searcher.search(query, 50).scoreDocs;
+                        ScoreDoc[] hits = searcher.search(query, 100).scoreDocs;
 
                         int rank = 1;
                         for (ScoreDoc hit : hits) {
                             Document doc = searcher.doc(hit.doc);
 
                             // Fetching the indexed 'documentID' instead of internal docId
-                            String docID = doc.get("documentID");  // This is the correct field to use
+                            String docID = doc.get("documentID");
                             String title = doc.get("title"); // Optional: fetch title if needed
 
                             // Write result in TREC format: queryNumber Q0 docID rank score runTag
@@ -77,28 +79,33 @@ public class SearchFiles {
                 }
             }
         }
+
+        System.out.println("Search completed. Results written to: " + outputPath);
     }
 
+    // Method to set the similarity model
     private static void setSimilarity(IndexSearcher searcher, int scoreType) {
         switch (scoreType) {
             case 0:
-                searcher.setSimilarity(new ClassicSimilarity());
+                searcher.setSimilarity(new ClassicSimilarity()); // Classic TF-IDF
                 break;
             case 1:
                 searcher.setSimilarity(new BM25Similarity(1.5f, 0.75f)); // Tuned BM25
                 break;
             case 2:
-                searcher.setSimilarity(new BooleanSimilarity());
-                break;
-            case 3:
-                searcher.setSimilarity(new LMDirichletSimilarity());
-                break;
-            case 4:
-                searcher.setSimilarity(new LMJelinekMercerSimilarity(0.7f));
+                searcher.setSimilarity(new BooleanSimilarity()); // Boolean
                 break;
             default:
-                System.out.println("Invalid score type");
-                throw new IllegalArgumentException("Invalid score type");
+                throw new IllegalArgumentException("Invalid score type: " + scoreType);
         }
+    }
+
+    // Method to escape special characters in queries
+    public static String escapeSpecialCharacters(String queryString) {
+        String[] specialChars = {"\\", "+", "-", "&&", "||", "!", "(", ")", "{", "}", "[", "]", "^", "\"", "~", "*", "?", ":", "/"};
+        for (String specialChar : specialChars) {
+            queryString = queryString.replace(specialChar, "\\" + specialChar);
+        }
+        return queryString;
     }
 }
