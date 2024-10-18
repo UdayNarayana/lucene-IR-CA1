@@ -48,12 +48,7 @@ public class IndexFiles {
                 for (File file : files) {
                     if (file.isFile()) {
                         System.out.println("Indexing file: " + file.getName());
-                        try {
-                            indexDocuments(writer, file);  // Index each document file
-                        } catch (Exception e) {
-                            System.err.println("Error indexing file: " + file.getName());
-                            e.printStackTrace();
-                        }
+                        indexDocuments(writer, file);  // Fixed method signature
                     }
                 }
             } else {
@@ -64,7 +59,7 @@ public class IndexFiles {
         System.out.println("Indexing completed.");
     }
 
-    // Method to index the documents
+    // Corrected to match the expected file type and the IndexWriter
     public static void indexDocuments(IndexWriter writer, File file) throws IOException {
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             String line;
@@ -120,14 +115,11 @@ public class IndexFiles {
     private static void addDocument(IndexWriter writer, String docID, String title, String textContent) throws IOException {
         Document doc = new Document();
 
-        // Use StringField for exact matching fields like documentID
+        // Index the document ID, title, and content
         doc.add(new StringField("documentID", docID, Field.Store.YES));
-
-        // Use TextField for searchable fields like title and contents
         doc.add(new TextField("title", title, Field.Store.YES));
         doc.add(new TextField("contents", textContent, Field.Store.YES));
 
-        // Add the document to the index
         writer.addDocument(doc);
     }
 }
