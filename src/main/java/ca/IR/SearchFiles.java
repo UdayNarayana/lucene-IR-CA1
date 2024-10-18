@@ -47,28 +47,30 @@ public class SearchFiles {
             try (Scanner scanner = new Scanner(queryFile)) {
                 int queryNumber = 1;
 
-                // Read queries from file
                 while (scanner.hasNextLine()) {
                     String queryString = scanner.nextLine().trim();
                     if (queryString.isEmpty()) continue;
 
                     try {
-                        queryString = QueryParser.escape(queryString); // Escape special characters in the query
-                        Query query = parser.parse(queryString); // Parse the query
+                        queryString = QueryParser.escape(queryString);
+                        Query query = parser.parse(queryString);
 
                         // Run the search and retrieve top 100 results
                         ScoreDoc[] hits = searcher.search(query, 100).scoreDocs;
 
-                        int rank = 1; // Start rank from 1
+                        int rank = 1;
                         for (ScoreDoc hit : hits) {
                             Document doc = searcher.doc(hit.doc);
-                            String docID = doc.get("documentID");
 
-                            // Write in the format: <query-id> 0 <docno> <relevance>
-                            writer.println(queryNumber + " 0 " + docID + " " + hit.score);
+                            // Fetching the indexed 'documentID' instead of internal docId
+                            String docID = doc.get("queryNumber");
+                            String title = doc.get("title"); // Optional: fetch title if needed
+
+                            // Write result in TREC format: queryNumber Q0 docID rank score runTag
+                            writer.println(queryNumber + " 0 " + docID + " " + rank + " " + hit.score + " STANDARD");
                             rank++;
                         }
-                        queryNumber++; // Move to the next query
+                        queryNumber++;
                     } catch (Exception e) {
                         System.out.println("Error parsing query: " + queryString);
                     }
@@ -77,7 +79,6 @@ public class SearchFiles {
         }
     }
 
-    // Method to set the similarity scoring function
     private static void setSimilarity(IndexSearcher searcher, int scoreType) {
         switch (scoreType) {
             case 0:
