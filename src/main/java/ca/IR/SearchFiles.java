@@ -8,6 +8,7 @@ import org.apache.lucene.search.*;
 import org.apache.lucene.search.similarities.BM25Similarity;
 import org.apache.lucene.search.similarities.BooleanSimilarity;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
+import org.apache.lucene.search.similarities.LMDirichletSimilarity;
 import org.apache.lucene.store.FSDirectory;
 
 import java.io.File;
@@ -129,7 +130,7 @@ public class SearchFiles {
                 searcher.setSimilarity(new BM25Similarity(1.5f, 0.75f)); // Tuned BM25
                 break;
             case 2:
-                searcher.setSimilarity(new BooleanSimilarity()); // Boolean
+                searcher.setSimilarity(new LMDirichletSimilarity()); // LMDirichletSimilarity
                 break;
             default:
                 throw new IllegalArgumentException("Invalid score type: " + scoreType);
