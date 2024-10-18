@@ -4,6 +4,7 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
+import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.*;
 import org.apache.lucene.search.similarities.BM25Similarity;
 import org.apache.lucene.search.similarities.BooleanSimilarity;
@@ -37,12 +38,10 @@ public class SearchFiles {
             setSimilarity(searcher, scoreType);
 
             StandardAnalyzer analyzer = new StandardAnalyzer();
-            String[] fields = {"title", "contents", "author", "bibliography"}; // Include new fields
+            String[] fields = {"title", "contents"};
             Map<String, Float> boosts = new HashMap<>();
             boosts.put("title", 3.0f);  // Increase the boost for the title field
             boosts.put("contents", 1.0f);
-            boosts.put("author", 1.5f); // Boost for author field
-            boosts.put("bibliography", 1.0f); // Boost for bibliography field
 
             MultiFieldQueryParser parser = new MultiFieldQueryParser(fields, analyzer, boosts);
 
@@ -59,7 +58,7 @@ public class SearchFiles {
                         Query query = parser.parse(queryString);
 
                         // Run the search and retrieve top 100 results
-                        ScoreDoc[] hits = searcher.search(query, 1400).scoreDocs;
+                        ScoreDoc[] hits = searcher.search(query, 50).scoreDocs;
 
                         int rank = 1;
                         for (ScoreDoc hit : hits) {
