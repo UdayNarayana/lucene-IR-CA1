@@ -66,10 +66,10 @@ public class SearchFiles {
 
                             // Fetching the indexed 'documentID' instead of internal docId
                             String docID = doc.get("documentID");
-                            int docIDInt = Integer.parseInt(docID);
 
-                            // Write result in TREC format: queryNumber 0 docID rank score runTag
-                            writer.println(queryNumber + " 0 " + docIDInt + " " + rank + " " + hit.score + " STANDARD");
+
+                            // Write result in TREC format: queryNumber Q0 docID rank score runTag
+                            writer.println(queryNumber + " 0 " + docID + " " + rank + " " + hit.score + " STANDARD");
                             rank++;
                         }
                         queryNumber++;
