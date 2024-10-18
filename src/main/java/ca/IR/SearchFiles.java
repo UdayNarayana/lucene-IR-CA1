@@ -4,7 +4,6 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
-import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.*;
 import org.apache.lucene.search.similarities.BM25Similarity;
 import org.apache.lucene.search.similarities.BooleanSimilarity;
@@ -38,10 +37,12 @@ public class SearchFiles {
             setSimilarity(searcher, scoreType);
 
             StandardAnalyzer analyzer = new StandardAnalyzer();
-            String[] fields = {"title", "contents"};
+            String[] fields = {"title", "contents", "author", "bibliography"}; // Include new fields
             Map<String, Float> boosts = new HashMap<>();
             boosts.put("title", 3.0f);  // Increase the boost for the title field
             boosts.put("contents", 1.0f);
+            boosts.put("author", 1.5f); // Boost for author field
+            boosts.put("bibliography", 1.0f); // Boost for bibliography field
 
             MultiFieldQueryParser parser = new MultiFieldQueryParser(fields, analyzer, boosts);
 

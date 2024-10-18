@@ -71,13 +71,18 @@ public class IndexFiles {
             StringBuilder docContent = new StringBuilder();
             int docId = 0;
             String title = "";  // Initialize title variable
+            String author = ""; // Initialize author variable
+            String bibliography = ""; // Initialize bibliography variable
+
             while ((line = reader.readLine()) != null) {
                 if (line.startsWith(".I")) {
                     // If there's content from a previous document, index it
                     if (docContent.length() > 0) {
-                        addDocument(writer, String.valueOf(docId), title, docContent.toString());
+                        addDocument(writer, String.valueOf(docId), title, docContent.toString(), author, bibliography);
                         docContent.setLength(0); // Clear the content buffer
                         title = "";  // Reset title for the next document
+                        author = ""; // Reset author for the next document
+                        bibliography = ""; // Reset bibliography for the next document
                     }
                     // Read the new document ID
                     docId = Integer.parseInt(line.split(" ")[1].trim());
@@ -86,19 +91,41 @@ public class IndexFiles {
                     StringBuilder titleBuilder = new StringBuilder();
                     // Read subsequent lines for the title
                     while ((line = reader.readLine()) != null) {
-                        if (line.startsWith(".A") || line.startsWith(".B")) {  // End of title section
+                        if (line.startsWith(".A")) {  // End of title section (Author)
                             break;  // Exit loop when encountering the next marker
                         }
                         titleBuilder.append(line.trim()).append(" ");  // Accumulate title lines
                     }
                     title = titleBuilder.toString().trim();  // Capture title
                     System.out.println("Title: " + title);
+                } else if (line.startsWith(".A")) {  // Capture author if present
+                    StringBuilder authorBuilder = new StringBuilder();
+                    // Read subsequent lines for the author
+                    while ((line = reader.readLine()) != null) {
+                        if (line.startsWith(".B")) {  // End of author section (Bibliography)
+                            break;  // Exit loop when encountering the next marker
+                        }
+                        authorBuilder.append(line.trim()).append(" ");  // Accumulate author lines
+                    }
+                    author = authorBuilder.toString().trim();  // Capture author
+                    System.out.println("Author: " + author);
+                } else if (line.startsWith(".B")) {  // Capture bibliography if present
+                    StringBuilder bibliographyBuilder = new StringBuilder();
+                    // Read subsequent lines for the bibliography
+                    while ((line = reader.readLine()) != null) {
+                        if (line.startsWith(".W")) {  // Start of the document content
+                            break;  // Exit loop to process content
+                        }
+                        bibliographyBuilder.append(line.trim()).append(" ");  // Accumulate bibliography lines
+                    }
+                    bibliography = bibliographyBuilder.toString().trim();  // Capture bibliography
+                    System.out.println("Bibliography: " + bibliography);
                 } else if (line.startsWith(".W")) {  // Start of the document content
                     StringBuilder contentBuilder = new StringBuilder();
                     while ((line = reader.readLine()) != null) {
                         if (line.startsWith(".I")) {  // End of content section and beginning of new document
                             docContent.append(contentBuilder.toString().trim());  // Append content
-                            addDocument(writer, String.valueOf(docId), title, docContent.toString());  // Index the document
+                            addDocument(writer, String.valueOf(docId), title, docContent.toString(), author, bibliography);  // Index the document
                             docContent.setLength(0);  // Clear content buffer for next doc
                             docId = Integer.parseInt(line.split(" ")[1].trim());  // Read new document ID
                             System.out.println("New docId: " + docId);  // Process the next docId
@@ -109,7 +136,7 @@ public class IndexFiles {
                     if (line == null) {
                         // If end of file, index the last document
                         docContent.append(contentBuilder.toString().trim());
-                        addDocument(writer, String.valueOf(docId), title, docContent.toString());  // Index last document
+                        addDocument(writer, String.valueOf(docId), title, docContent.toString(), author, bibliography);  // Index last document
                     }
                 }
             }
@@ -117,15 +144,17 @@ public class IndexFiles {
     }
 
     // Method to add the document to Lucene's index
-    private static void addDocument(IndexWriter writer, String docID, String title, String textContent) throws IOException {
+    private static void addDocument(IndexWriter writer, String docID, String title, String textContent, String author, String bibliography) throws IOException {
         Document doc = new Document();
 
         // Use StringField for exact matching fields like documentID
         doc.add(new StringField("documentID", docID, Field.Store.YES));
 
-        // Use TextField for searchable fields like title and contents
+        // Use TextField for searchable fields like title, contents, author, and bibliography
         doc.add(new TextField("title", title, Field.Store.YES));
         doc.add(new TextField("contents", textContent, Field.Store.YES));
+        doc.add(new StringField("author", author, Field.Store.YES)); // Add author field
+        doc.add(new StringField("bibliography", bibliography, Field.Store.YES)); // Add bibliography field
 
         // Add the document to the index
         writer.addDocument(doc);
