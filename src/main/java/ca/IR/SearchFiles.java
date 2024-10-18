@@ -52,18 +52,18 @@ public class SearchFiles {
                     if (queryString.isEmpty()) continue;
 
                     try {
-                        queryString = QueryParser.escape(queryString);
-                        Query query = parser.parse(queryString);
+                        String queriedString = QueryParser.escape(queryString);
+                        Query query = parser.parse(queriedString);
 
                         // Run the search and retrieve top 100 results
-                        ScoreDoc[] hits = searcher.search(query, 100).scoreDocs;
+                        ScoreDoc[] hits = searcher.search(query, 50).scoreDocs;
 
                         int rank = 1;
                         for (ScoreDoc hit : hits) {
                             Document doc = searcher.doc(hit.doc);
 
                             // Fetching the indexed 'documentID' instead of internal docId
-                            String docID = doc.get("queryNumber");
+                            String docID = doc.get("documentID");  // This is the correct field to use
                             String title = doc.get("title"); // Optional: fetch title if needed
 
                             // Write result in TREC format: queryNumber Q0 docID rank score runTag
