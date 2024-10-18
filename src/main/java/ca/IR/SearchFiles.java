@@ -58,7 +58,7 @@ public class SearchFiles {
                         Query query = parser.parse(queryString);
 
                         // Run the search and retrieve top 100 results
-                        ScoreDoc[] hits = searcher.search(query, 100).scoreDocs;
+                        ScoreDoc[] hits = searcher.search(query, 1400).scoreDocs;
 
                         int rank = 1;
                         for (ScoreDoc hit : hits) {
