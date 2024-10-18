@@ -1,61 +1,95 @@
 package ca.IR;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.document.Document;
 
-import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileWriter;
-import java.io.FileReader;
+import java.io.PrintWriter;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Scanner;
 
 public class SearchFiles {
+    private final IndexSearcher searcher;
+    private final MultiFieldQueryParser parser;
 
-    public static void main(String[] args) throws Exception {
-        if (args.length < 3) {
-            System.out.println("Usage: java CranfieldQuery <indexdir> <qryfile> <resultfile>");
-            System.exit(1);
-        }
+    public SearchFiles(String indexPath) throws Exception {
+        DirectoryReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexPath)));
+        this.searcher = new IndexSearcher(reader);
+        StandardAnalyzer analyzer = new StandardAnalyzer();
+        String[] fields = {"title", "contents"};
+        Map<String, Float> boosts = new HashMap<>();
+        boosts.put("title", 2.0f);
+        boosts.put("contents", 1.0f);
+        this.parser = new MultiFieldQueryParser(fields, analyzer, boosts);
+    }
 
-        String indexPath = args[0];   // First argument: path to the index directory
-        String qryFile = args[1];     // Second argument: path to cran.qry file
-        String resultFile = args[2];  // Third argument: path to store result output
+    public void search(String queriesPath, String outputPath) throws Exception {
+        File queryFile = new File(queriesPath);
+        try (Scanner scanner = new Scanner(queryFile);
+             PrintWriter writer = new PrintWriter(new FileWriter(outputPath))) {
+            int queryNumber = 1;
 
-        // Load the index directory
-        IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(FSDirectory.open(Paths.get(indexPath))));
-        QueryParser parser = new QueryParser("content", new StandardAnalyzer());
+            while (scanner.hasNextLine()) {
+                String queryString = scanner.nextLine().trim();
+                if (queryString.isEmpty()) continue;
 
-        BufferedReader br = new BufferedReader(new FileReader(qryFile));
-        FileWriter resultWriter = new FileWriter(resultFile);
-        String line;
-        int queryId = 0;
+                // Sanitize the query string
+                queryString = sanitizeQuery(queryString);
 
-        while ((line = br.readLine()) != null) {
-            if (line.startsWith(".W")) {
-                queryId++;
-                StringBuilder queryText = new StringBuilder();
-                while ((line = br.readLine()) != null && !line.startsWith(".")) {
-                    queryText.append(line).append(" ");
-                }
+                try {
+                    Query query = parser.parse(QueryParser.escape(queryString));
+                    TopDocs results = searcher.search(query, 100);
+                    ScoreDoc[] hits = results.scoreDocs;
 
-                Query query = parser.parse(queryText.toString());
-                TopDocs results = searcher.search(query, 50);
-
-                for (ScoreDoc sd : results.scoreDocs) {
-                    Document d = searcher.doc(sd.doc);
-                    resultWriter.write(queryId + " Q0 " + d.get("id") + " " + sd.score + "\n");
+                    int rank = 1;
+                    for (ScoreDoc hit : hits) {
+                        Document doc = searcher.doc(hit.doc);
+                        String docID = doc.get("documentID");
+                        writer.println(queryNumber + " 0 " + docID + " " + rank + " " + hit.score + " STANDARD");
+                        rank++;
+                    }
+                    queryNumber++;
+                } catch (Exception e) {
+                    System.out.println("Error parsing query: " + queryString);
                 }
             }
         }
-        resultWriter.close();
-        br.close();
+    }
 
-        System.out.println("Querying completed.");
+    private String sanitizeQuery(String query) {
+        // Remove leading special characters
+        while (query.length() > 0 && (query.charAt(0) == '*' || query.charAt(0) == '?')) {
+            query = query.substring(1).trim(); // Remove the character and trim whitespace
+        }
+        return query;
+    }
+
+    public static void main(String[] args) {
+        if (args.length < 3) {
+            System.out.println("Usage: SearchFiles <indexDir> <queriesFile> <outputFile>");
+            return;
+        }
+
+        String indexPath = args[0];
+        String queriesPath = args[1];
+        String outputPath = args[2];
+
+        try {
+            SearchFiles searcher = new SearchFiles(indexPath);
+            searcher.search(queriesPath, outputPath);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
