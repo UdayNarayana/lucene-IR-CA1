@@ -20,7 +20,7 @@ public class IndexFiles {
 
     public static void main(String[] args) throws Exception {
         if (args.length < 2) {
-            System.out.println("Usage: IndexFiles <indexDir> <docsDir>");
+            System.out.println("Usage: IndexFiless <indexDir> <docsDir>");
             return;
         }
 
