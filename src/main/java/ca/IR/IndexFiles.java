@@ -104,8 +104,7 @@ public class IndexFiles {
             String textContent
     ) throws IOException {
         Document doc = new Document();
-        doc.add(new IntPoint("documentID", docID));  // Index docID as an integer
-        doc.add(new StoredField("documentID", docID)); // Store docID for retrieval
+        doc.add(new StoredField("documentID", docID));
         doc.add(new TextField("title", title, Field.Store.YES));
         doc.add(new TextField("contents", textContent, Field.Store.YES));
         writer.addDocument(doc);

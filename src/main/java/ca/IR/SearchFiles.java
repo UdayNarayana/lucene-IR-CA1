@@ -1,11 +1,14 @@
 package ca.IR;
 
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
 import org.apache.lucene.search.*;
 import org.apache.lucene.search.similarities.BM25Similarity;
+import org.apache.lucene.search.similarities.ClassicSimilarity;
+import org.apache.lucene.search.similarities.LMDirichletSimilarity;
 import org.apache.lucene.store.FSDirectory;
 
 import java.io.File;
@@ -34,7 +37,7 @@ public class SearchFiles {
             IndexSearcher searcher = new IndexSearcher(reader);
             setSimilarity(searcher, scoreType);
 
-            EnglishAnalyzer analyzer = new EnglishAnalyzer();
+            StandardAnalyzer analyzer = new StandardAnalyzer();
             String[] fields = {"title", "contents"};
             Map<String, Float> boosts = new HashMap<>();
             boosts.put("title", 4.0f);
@@ -113,10 +116,17 @@ public class SearchFiles {
         }
     }
 
+    // Method to set the similarity model
     private static void setSimilarity(IndexSearcher searcher, int scoreType) {
         switch (scoreType) {
             case 0:
-                searcher.setSimilarity(new BM25Similarity(1.5f, 0.75f)); // Tuned BM25 values
+                searcher.setSimilarity(new ClassicSimilarity()); // Classic TF-IDF
+                break;
+            case 1:
+                searcher.setSimilarity(new BM25Similarity(1.5f, 0.75f)); // Tuned BM25
+                break;
+            case 2:
+                searcher.setSimilarity(new LMDirichletSimilarity()); // LMDirichletSimilarity
                 break;
             default:
                 throw new IllegalArgumentException("Invalid score type: " + scoreType);
